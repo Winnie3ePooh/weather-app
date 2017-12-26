@@ -4,7 +4,7 @@
       <img :src='"http://openweathermap.org/img/w/"+data.weather[0].icon+".png"' alt="Card image cap">
     </div>
     <div class="weather-body">
-      <div class="row justify-content-center align-items-center">
+      <div class="row justify-content-center align-items-center text-center">
         <h5 class="text-center">{{data.dt_txt}}</h5>
       </div>
       <div class="row row-first text-center">
@@ -28,7 +28,6 @@
 </template>
 
 <script>
-let moment = require('moment');
 export default {
   name: 'Item',
   props: ['data'],
@@ -36,9 +35,6 @@ export default {
     return {
       msg: 'Welcome to weather app!',
     }
-  },
-  created: function () {
-    this.data.dt_txt = moment(this.data.dt_txt,('YYYY-MM-DD')).format('MMM Do YY');
   },
   methods: {
   }

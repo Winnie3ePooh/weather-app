@@ -45,10 +45,15 @@
         </div>
       </div>
     </div>
-    <div v-if='seenSecond' class="container-fluid testimonial-group">
-      <div class="row flex-row flex-sm-nowrap pt-3">
-        <div v-for='item in result'>
-          <item :data='item'></item>
+    <div v-if='seen' class="container testimonial-group-y">
+      <p><button class="btn btn-roll btn-roll-outlined btn-roll-theme" @click="stateChange"
+        v-class="{active: seenSecond}">
+        More info
+      </button></p>
+      <div class="row justify-content-center align-items-center"
+        v-bind:class="[{slideup : seenSecond},{slidedown : !seenSecond}]">
+        <div v-for='item in groupedResult' class="col-12">
+          <itemDetailed :data='item'></itemDetailed>
         </div>
       </div>
     </div>
@@ -57,39 +62,78 @@
 
 <script>
 import Item from './Item.vue'
-
+import ItemDetailed from './ItemDetailed.vue'
 const apiKey = '53348de24a0f9e7ef16c4fa3d6d405c7';
+
+let moment = require('moment');
 
 export default {
   name: 'Weather',
   props: ['weather'],
   components: {
-    Item
+    Item,
+    ItemDetailed
   },
   data () {
     return {
       msg: 'Welcome to weather app!',
       seen: false,
-      seenSecond: false,
+      seenSecond: true,
       result: [],
       filteredResult: [],
+      buf: [],
+      groupedResult: []
     }
   },
   methods: {
+    resetVars() {
+      this.filteredResult, this.buf, this.groupedResult = [],[],[];
+    },
+    momentIt(element, flag) {
+      let frmt = '';
+      (flag === 'days')? frmt = 'MMM Do':frmt = 'HH:ss';
+      element.dt_txt = moment(element.dt_txt,('YYYY-MM-DD h:mm:ss')).format(frmt);
+    },
     filterWeather(obj) {
-      console.log('=========================')
       if(obj.dt_txt.split(' ')[1] === '15:00:00') return true;
+    },
+    getDateSet(objs) {
+      let buf = new Set();
+      objs.forEach(obj => {
+        buf.add(obj.dt_txt.split(' ')[0]);
+      });
+      this.buf = [...buf];
+    },
+    detailedWeatherProcessing(data) {
+      let buf = [];
+      for(let item of this.buf) {
+        buf = data.filter(data => {
+          if(data.dt_txt.includes(item)) return true;
+        });
+        buf.forEach(el => this.momentIt(el, 'hours'));
+        this.groupedResult.push([{date:item,buf}]);
+        buf = [];
+      }
     },
     getWeather() {
     this.$http.get('http://api.openweathermap.org/data/2.5/forecast?q='+this.weather.name+'&units=metric&APPID='+apiKey).then(response => {
         // get body data
+        this.resetVars();
         this.result = response.body.list;
+        this.getDateSet(this.result);
         this.filteredResult = this.result.filter(this.filterWeather);
+        this.filteredResult.forEach(el => this.momentIt(el, 'days'));
+        this.detailedWeatherProcessing(this.result);
         this.seen = true;
       }, response => {
         // error callback
-        console.log('oooops');
+        console.log('Request Error');
       });
+    },
+    stateChange() {
+
+      this.seenSecond = !this.seenSecond;
+
     }
   }
 }
@@ -222,7 +266,73 @@ export default {
   .testimonial-group > .row {
     overflow-x: auto;
     white-space: nowrap;
-    margin-bottom: 100px;
+    margin-bottom: 25px;
   }
 
+  .testimonial-group-y > .row {
+    overflow-y: auto;
+    margin-bottom: 25px;
+  }
+
+  .slideup, .slidedown {
+    max-height: 0;
+    overflow-y: hidden;
+    -webkit-transition: max-height 0.8s ease-in-out;
+    -moz-transition: max-height 0.8s ease-in-out;
+    -o-transition: max-height 0.8s ease-in-out;
+    transition: max-height 0.8s ease-in-out;
+  }
+  .slidedown {
+    min-height: 500px;
+  }
+
+  .collapse {
+    transition-duration: 0.3s;
+  }
+
+  .btn-roll {
+    letter-spacing: 1px;
+    text-decoration: none;
+    background: none;
+    -moz-user-select: none;
+    background-image: none;
+    border: 1px solid transparent;
+    border-radius: 0;
+    cursor: pointer;
+    display: inline-block;
+    margin-bottom: 0;
+    vertical-align: middle;
+    white-space: nowrap;
+    font-size:14px;
+    line-height:20px;
+    font-weight:700;
+    text-transform:uppercase;
+    border: 3px solid;
+    padding:8px 20px;
+  }
+  .btn-roll-outlined {
+    border-radius: 0;
+    -webkit-transition: all 0.3s;
+    -moz-transition: all 0.3s;
+    transition: all 0.3s;
+  }
+
+  .btn-roll-outlined.btn-roll-theme {
+    background: none;
+    color: #6f5499;
+    border-color: #6f5499;
+  }
+
+  .btn-roll-outlined.btn-roll-theme:hover,
+  .btn-roll-outlined.btn-roll-theme:active {
+    color: #FFF;
+    background: #6f5499;
+    border-color: #6f5499;
+  }
+
+  .btn-roll-outlined.btn-roll-theme .active {
+    color: #FFF;
+    background: #6f5499;
+    border-color: #6f5499;
+  }
 </style>
